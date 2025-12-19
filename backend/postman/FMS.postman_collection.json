@@ -1,0 +1,96 @@
+{
+  "info": {
+    "name": "FMS API",
+    "_postman_id": "f7f0d7b1-1111-2222-3333-444455556666",
+    "description": "Collection to test FMS API using {{baseUrl}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://your-api.example.com/api/v1" },
+    { "key": "departmentId", "value": "1" },
+    { "key": "fiscalYearId", "value": "2" },
+    { "key": "accountId", "value": "2" }
+  ],
+  "item": [
+    {
+      "name": "States - List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/states?limit=10&offset=0"
+      }
+    },
+    {
+      "name": "States - Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"StateName\": \"Gamma State\",\n  \"ISOCode\": \"GAM\",\n  \"ActiveFrom\": \"2020-01-01\"\n}"
+        },
+        "url": "{{baseUrl}}/states"
+      }
+    },
+    {
+      "name": "Departments - List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/departments?limit=10&offset=0"
+      }
+    },
+    {
+      "name": "Accounts - Create",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"AccountCode\": \"EXP-2002\",\n  \"AccountName\": \"Travel\",\n  \"AccountType\": \"Expense\",\n  \"EconomicClass\": \"Opex\",\n  \"FunctionalClass\": \"Admin\",\n  \"FundCode\": \"GF\"\n}"
+        },
+        "url": "{{baseUrl}}/accounts"
+      }
+    },
+    {
+      "name": "Budgets - List (Filters)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/budgets?departmentId={{departmentId}}&fiscalYearId={{fiscalYearId}}&limit=10&offset=0"
+      }
+    },
+    {
+      "name": "Expenditures - List (Date range)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/expenditures?departmentId={{departmentId}}&fiscalYearId={{fiscalYearId}}&startDate=2025-04-01&endDate=2025-04-30&sort=date_desc&limit=10&offset=0"
+      }
+    },
+    {
+      "name": "Analytics - Utilization",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/utilization?departmentId={{departmentId}}&fiscalYearId={{fiscalYearId}}"
+      }
+    },
+    {
+      "name": "Analytics - Monthly Expenditure",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/monthly-expenditure?departmentId={{departmentId}}&fiscalYearId={{fiscalYearId}}"
+      }
+    },
+    {
+      "name": "Analytics - By Account Type",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/by-account-type?departmentId={{departmentId}}&fiscalYearId={{fiscalYearId}}"
+      }
+    },
+    {
+      "name": "Analytics - Top Departments",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/top-departments?fiscalYearId={{fiscalYearId}}&limit=5"
+      }
+    }
+  ]
+}

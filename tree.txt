@@ -1,0 +1,102 @@
+﻿├── backend
+│   ├── db
+│   │   ├── migrations
+│   │   │   ├── 001_init.sql
+│   │   │   ├── 002_seed_minimal.sql
+│   │   ├── README.md
+│   ├── docs
+│   │   ├── openapi.yaml
+│   ├── postman
+│   │   ├── FMS.postman_collection.json
+│   ├── src
+│   │   ├── config
+│   │   │   ├── db.js
+│   │   │   ├── env.js
+│   │   ├── middleware
+│   │   │   ├── cors.js
+│   │   │   ├── errors.js
+│   │   │   ├── notFound.js
+│   │   │   ├── validate.js
+│   │   ├── routes
+│   │   │   ├── accounts.js
+│   │   │   ├── analytics.js
+│   │   │   ├── budgets.js
+│   │   │   ├── ddl.js
+│   │   │   ├── departments.js
+│   │   │   ├── expenditures.js
+│   │   │   ├── fiscalYears.js
+│   │   │   ├── index.js
+│   │   │   ├── query.txt
+│   │   │   ├── queryBuilder.js
+│   │   │   ├── states.js
+│   │   │   ├── views.js
+│   │   ├── services
+│   │   │   ├── utils
+│   │   │   │   ├── dynamicSql.js
+│   │   │   ├── accounts.js
+│   │   │   ├── analytics.js
+│   │   │   ├── budgets.js
+│   │   │   ├── departments.js
+│   │   │   ├── expenditures.js
+│   │   │   ├── fiscalYears.js
+│   │   │   ├── query.txt
+│   │   │   ├── queryBuilder.js
+│   │   │   ├── states.js
+│   │   │   ├── views.js
+│   │   ├── utils
+│   │   │   ├── pagination.js
+│   │   ├── validators
+│   │   │   ├── accounts.js
+│   │   │   ├── analytics.js
+│   │   │   ├── budgets.js
+│   │   │   ├── common.js
+│   │   │   ├── departments.js
+│   │   │   ├── expenditures.js
+│   │   │   ├── fiscalYears.js
+│   │   │   ├── states.js
+│   │   ├── app.js
+│   │   ├── server.js
+│   ├── .env
+│   ├── .env.example
+│   ├── package-lock.json
+│   ├── package.json
+├── frontend
+│   ├── src
+│   │   ├── components
+│   │   │   ├── AlterPanel.jsx
+│   │   │   ├── ChartCard.jsx
+│   │   │   ├── DynamicFields.jsx
+│   │   │   ├── Filters.jsx
+│   │   │   ├── Form.jsx
+│   │   │   ├── Money.jsx
+│   │   │   ├── Pagination.jsx
+│   │   │   ├── Table.jsx
+│   │   ├── lib
+│   │   │   ├── api.js
+│   │   │   ├── format.js
+│   │   ├── pages
+│   │   │   ├── Accounts.jsx
+│   │   │   ├── analytics.jpg
+│   │   │   ├── Budgets.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── DatabaseViews.jsx
+│   │   │   ├── Departments.jsx
+│   │   │   ├── Expenditures.jsx
+│   │   │   ├── FiscalYears.jsx
+│   │   │   ├── MultiView.jsx
+│   │   │   ├── sap.txt
+│   │   │   ├── States.jsx
+│   │   │   ├── VisualBuilder.jsx
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   ├── .env
+│   ├── .env.example
+│   ├── index.html
+│   ├── jsconfig.json
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── README.md
+├── insert_data.txt
+├── README.md
+├── tree.txt

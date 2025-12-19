@@ -1,0 +1,13 @@
+-- if table exist delete all table -- 
+
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS budgets, chartofaccounts, departments, expenditures, fiscalyears, states;
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- to insert tables for the db/migrations folder --
+
+mysql -u root -p fms < "C:\projects-cit\fms\backend\db\migrations\001_init.sql"
+
+-- to insert data from the db/migrations floder --
+
+mysql -u root -p fms < "C:\projects-cit\fms\backend\db\migrations\002_seed_minimal.sql"

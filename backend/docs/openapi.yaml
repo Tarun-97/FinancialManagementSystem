@@ -1,0 +1,631 @@
+openapi: 3.0.3
+info:
+  title: Financial Management System API
+  version: 1.0.0
+  description: REST API contract for FMS covering CRUD and analytics; no implementation included. Enforces AccountType enum and supports pagination, filters, and sorting.
+servers:
+  - url: https://your-api.example.com/api/v1
+
+tags:
+  - name: states
+  - name: departments
+  - name: fiscal-years
+  - name: accounts
+  - name: budgets
+  - name: expenditures
+  - name: analytics
+
+components:
+  parameters:
+    Limit:
+      in: query
+      name: limit
+      schema: { type: integer, minimum: 1, maximum: 200, default: 10 }
+      description: Page size
+    Offset:
+      in: query
+      name: offset
+      schema: { type: integer, minimum: 0, default: 0 }
+      description: Offset for pagination
+    DepartmentId:
+      in: query
+      name: departmentId
+      schema: { type: integer, format: int64 }
+    FiscalYearId:
+      in: query
+      name: fiscalYearId
+      schema: { type: integer, format: int64 }
+    AccountId:
+      in: query
+      name: accountId
+      schema: { type: integer, format: int64 }
+    SortDate:
+      in: query
+      name: sort
+      schema:
+        type: string
+        enum: [date_desc, date_asc]
+      description: Sort by date; default date_desc where applicable
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string, example: ValidationError }
+        message: { type: string, example: Invalid accountType; allowed: Revenue, Expense, Asset, Liability, Equity }
+        details:
+          type: object
+          additionalProperties: true
+    State:
+      type: object
+      required: [StateName, ISOCode, ActiveFrom]
+      properties:
+        StateID: { type: integer, format: int64, readOnly: true }
+        StateName: { type: string, maxLength: 200 }
+        ISOCode: { type: string, maxLength: 10 }
+        ActiveFrom: { type: string, format: date }
+        ActiveTo: { type: string, format: date, nullable: true }
+    Department:
+      type: object
+      required: [StateID, DeptCode, DeptName]
+      properties:
+        DepartmentID: { type: integer, format: int64, readOnly: true }
+        StateID: { type: integer, format: int64 }
+        DeptCode: { type: string, maxLength: 50 }
+        DeptName: { type: string, maxLength: 200 }
+        ParentDepartmentID: { type: integer, format: int64, nullable: true }
+    FiscalYear:
+      type: object
+      required: [YearLabel, StartDate, EndDate, IsCurrent]
+      properties:
+        FiscalYearID: { type: integer, format: int64, readOnly: true }
+        YearLabel: { type: string, maxLength: 20 }
+        StartDate: { type: string, format: date }
+        EndDate: { type: string, format: date }
+        IsCurrent: { type: boolean }
+    Account:
+      type: object
+      required: [AccountCode, AccountName, AccountType]
+      properties:
+        AccountID: { type: integer, format: int64, readOnly: true }
+        AccountCode: { type: string, maxLength: 50 }
+        AccountName: { type: string, maxLength: 200 }
+        AccountType:
+          type: string
+          enum: [Revenue, Expense, Asset, Liability, Equity]
+        EconomicClass: { type: string, nullable: true, maxLength: 50 }
+        FunctionalClass: { type: string, nullable: true, maxLength: 50 }
+        FundCode: { type: string, nullable: true, maxLength: 50 }
+    Budget:
+      type: object
+      required: [DepartmentID, FiscalYearID, AccountID, FundCode, ApprovedAmount, RevisedAmount]
+      properties:
+        BudgetID: { type: integer, format: int64, readOnly: true }
+        DepartmentID: { type: integer, format: int64 }
+        FiscalYearID: { type: integer, format: int64 }
+        AccountID: { type: integer, format: int64 }
+        FundCode: { type: string, maxLength: 50 }
+        ApprovedAmount: { type: number, format: double, multipleOf: 0.01 }
+        RevisedAmount: { type: number, format: double, multipleOf: 0.01 }
+        Notes: { type: string, nullable: true, maxLength: 500 }
+        CreatedAt: { type: string, format: date-time, readOnly: true }
+    Expenditure:
+      type: object
+      required: [DepartmentID, FiscalYearID, AccountID, ExpenditureDate, Amount, Description]
+      properties:
+        ExpenditureID: { type: integer, format: int64, readOnly: true }
+        DepartmentID: { type: integer, format: int64 }
+        FiscalYearID: { type: integer, format: int64 }
+        AccountID: { type: integer, format: int64 }
+        ExpenditureDate: { type: string, format: date }
+        Amount: { type: number, format: double, multipleOf: 0.01 }
+        PaymentRef: { type: string, nullable: true, maxLength: 100 }
+        Description: { type: string, maxLength: 500 }
+        CreatedAt: { type: string, format: date-time, readOnly: true }
+    Paginated:
+      type: object
+      properties:
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        items:
+          type: array
+          items: {}
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            notFound:
+              value: { error: NotFound, message: Resource not found }
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            invalidAccountType:
+              value: { error: ValidationError, message: 'Invalid AccountType', details: { allowed: ['Revenue','Expense','Asset','Liability','Equity'] } }
+
+paths:
+  /states:
+    get:
+      tags: [states]
+      parameters: [ { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Offset' } ]
+      responses:
+        '200':
+          description: List states
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/State' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [states]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/State' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/State' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /states/{id}:
+    get:
+      tags: [states]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '200': { description: One state, content: { application/json: { schema: { $ref: '#/components/schemas/State' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [states]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/State' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/State' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [states]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /departments:
+    get:
+      tags: [departments]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - in: query
+          name: stateId
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: List departments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Department' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [departments]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Department' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Department' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /departments/{id}:
+    get:
+      tags: [departments]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '200': { description: One department, content: { application/json: { schema: { $ref: '#/components/schemas/Department' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [departments]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Department' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Department' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [departments]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /fiscal-years:
+    get:
+      tags: [fiscal-years]
+      parameters: [ { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Offset' } ]
+      responses:
+        '200':
+          description: List fiscal years
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/FiscalYear' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [fiscal-years]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/FiscalYear' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/FiscalYear' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /fiscal-years/{id}:
+    get:
+      tags: [fiscal-years]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '200': { description: One fiscal year, content: { application/json: { schema: { $ref: '#/components/schemas/FiscalYear' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [fiscal-years]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/FiscalYear' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/FiscalYear' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [fiscal-years]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /accounts:
+    get:
+      tags: [accounts]
+      parameters: [ { $ref: '#/components/parameters/Limit' }, { $ref: '#/components/parameters/Offset' } ]
+      responses:
+        '200':
+          description: List accounts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Account' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [accounts]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Account' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /accounts/{id}:
+    get:
+      tags: [accounts]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '200': { description: One account, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [accounts]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Account' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [accounts]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /budgets:
+    get:
+      tags: [budgets]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/FiscalYearId'
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: List budgets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Budget' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [budgets]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Budget' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Budget' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /budgets/{id}:
+    get:
+      tags: [budgets]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '200': { description: One budget, content: { application/json: { schema: { $ref: '#/components/schemas/Budget' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [budgets]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Budget' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Budget' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [budgets]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /expenditures:
+    get:
+      tags: [expenditures]
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/FiscalYearId'
+        - $ref: '#/components/parameters/AccountId'
+        - $ref: '#/components/parameters/SortDate'
+        - in: query
+          name: startDate
+          schema: { type: string, format: date }
+        - in: query
+          name: endDate
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: List expenditures
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items: { $ref: '#/components/schemas/Expenditure' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    post:
+      tags: [expenditures]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Expenditure' } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Expenditure' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /expenditures/{id}:
+    get:
+      tags: [expenditures]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '200': { description: One expenditure, content: { application/json: { schema: { $ref: '#/components/schemas/Expenditure' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [expenditures]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      requestBody:
+        required: true
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/Expenditure' } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Expenditure' } } } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [expenditures]
+      parameters: [ { in: path, name: id, required: true, schema: { type: integer, format: int64 } } ]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /analytics/utilization:
+    get:
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/FiscalYearId'
+      responses:
+        '200':
+          description: Utilization aggregates
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approved, revised, spent, remaining]
+                properties:
+                  approved: { type: number, format: double }
+                  revised: { type: number, format: double }
+                  spent: { type: number, format: double }
+                  remaining: { type: number, format: double }
+          examples:
+            sample:
+              value: { approved: 1000000, revised: 1100000, spent: 200000, remaining: 900000 }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /analytics/monthly-expenditure:
+    get:
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/FiscalYearId'
+      responses:
+        '200':
+          description: Monthly totals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [month, total]
+                  properties:
+                    month: { type: integer, minimum: 1, maximum: 12 }
+                    total: { type: number, format: double }
+          examples:
+            sample:
+              value: [ { month: 4, total: 85000 }, { month: 5, total: 87000 } ]
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /analytics/by-account-type:
+    get:
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/DepartmentId'
+        - $ref: '#/components/parameters/FiscalYearId'
+      responses:
+        '200':
+          description: Totals grouped by AccountType
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [accountType, total]
+                  properties:
+                    accountType:
+                      type: string
+                      enum: [Revenue, Expense, Asset, Liability, Equity]
+                    total: { type: number, format: double }
+          examples:
+            sample:
+              value: [ { accountType: Expense, total: 232000 }, { accountType: Revenue, total: 120000 } ]
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /analytics/top-departments:
+    get:
+      tags: [analytics]
+      parameters:
+        - $ref: '#/components/parameters/FiscalYearId'
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 50, default: 5 }
+      responses:
+        '200':
+          description: Top departments by spend
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [departmentId, deptName, total]
+                  properties:
+                    departmentId: { type: integer, format: int64 }
+                    deptName: { type: string }
+                    total: { type: number, format: double }
+          examples:
+            sample:
+              value: [ { departmentId: 1, deptName: Finance Department, total: 172000 }, { departmentId: 2, deptName: Health Department, total: 60000 } ]
+        '500': { description: Server error, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+x-examples:
+  createAccountRequest:
+    value:
+      AccountCode: EXP-2002
+      AccountName: Travel
+      AccountType: Expense
+      EconomicClass: Opex
+      FunctionalClass: Admin
+      FundCode: GF
+  createAccountResponse:
+    value:
+      AccountID: 10
+      AccountCode: EXP-2002
+      AccountName: Travel
+      AccountType: Expense
+      EconomicClass: Opex
+      FunctionalClass: Admin
+      FundCode: GF
